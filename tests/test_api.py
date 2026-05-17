@@ -106,3 +106,14 @@ def test_stats_bad_llm_response(mocker):
     assert resp.status_code == 200
     body = resp.json()
     assert body == {"total_spending": 0.0, "total_income": 0.0, "largest_transaction": 0.0}
+
+
+def test_stats_markdown_fenced_response(mocker):
+    _mock_supabase_docs(mocker, [{"content": "Income: $3450. Spending: $248.21. Largest: $200."}])
+    _mock_anthropic_stats(mocker, '```json\n{"total_spending": 248.21, "total_income": 3450.0, "largest_transaction": 200.0}\n```')
+    resp = client.get("/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_spending"] == pytest.approx(248.21)
+    assert body["total_income"] == pytest.approx(3450.0)
+    assert body["largest_transaction"] == pytest.approx(200.0)

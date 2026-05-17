@@ -163,7 +163,13 @@ def stats():
     )
 
     try:
-        data = json.loads(response.content[0].text.strip())
+        raw = response.content[0].text.strip()
+        # Strip markdown code fences if the model wraps the JSON
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        data = json.loads(raw.strip())
         return {
             "total_spending": float(data.get("total_spending", 0)),
             "total_income": float(data.get("total_income", 0)),
