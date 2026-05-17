@@ -24,13 +24,13 @@ def _get_client() -> Client:
     return _client
 
 
-def upsert_document(title: str, source: str, content: str, metadata: dict) -> str:
+def upsert_document(title: str, source: str, content: str, metadata: dict, uploaded_by_client: bool = False) -> str:
     """Insert or update a document record. Returns the document UUID."""
     client = _get_client()
     result = (
         client.table("documents")
         .upsert(
-            {"title": title, "source": source, "content": content, "metadata": metadata},
+            {"title": title, "source": source, "content": content, "metadata": metadata, "uploaded_by_client": uploaded_by_client},
             on_conflict="source",
         )
         .execute()
@@ -57,12 +57,12 @@ def upsert_chunks(
     ).execute()
 
 
-def similarity_search(query_embedding: list[float], top_k: int = 5) -> list[dict]:
+def similarity_search(query_embedding: list[float], top_k: int = 5, client_only: bool = False) -> list[dict]:
     """Find the top_k most similar chunks using cosine distance."""
     client = _get_client()
     vec_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
     result = client.rpc(
         "match_chunks",
-        {"query_embedding": vec_str, "match_count": top_k},
+        {"query_embedding": vec_str, "match_count": top_k, "client_only": client_only},
     ).execute()
     return result.data
