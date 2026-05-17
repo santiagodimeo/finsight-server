@@ -99,7 +99,7 @@ Imports the same pipeline modules and wraps them in FastAPI endpoints. Uses modu
 - `document_chunks` — one row per chunk, with `embedding vector(1024)` and IVFFlat cosine index (lists=100)
 - `match_chunks(query_embedding text, match_count int)` RPC — must be `VOLATILE` (not stable/immutable) so Postgres doesn't cache results; a `SET ivfflat.probes = 100` inside the function ensures the index is actually searched
 
-Migrations are in `supabase/migrations/` and managed via Supabase CLI. Supabase project ref: `chiebawikojfnhrrnjrf`.
+Migrations are in `supabase/migrations/` and managed via Supabase CLI.
 
 To push a new migration:
 ```bash
