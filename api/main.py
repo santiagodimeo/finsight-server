@@ -78,6 +78,7 @@ async def upload(file: UploadFile):
         source=file.filename or "untitled",
         content=text,
         metadata={"file_name": file.filename, "file_size": len(contents)},
+        uploaded_by_client=True,
     )
     upsert_chunks(doc_id, chunks, embeddings)
 
@@ -103,7 +104,7 @@ class QueryRequest(BaseModel):
 @app.post("/query")
 def query(body: QueryRequest):
     vector = embed_query(body.question)
-    chunks = similarity_search(vector, top_k=5)
+    chunks = similarity_search(vector, top_k=5, client_only=True)
 
     if not chunks:
         return {"answer": "No relevant documents found. Please upload a document first.", "sources": []}
