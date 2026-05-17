@@ -113,8 +113,14 @@ if [[ "$API_ID" == "None" || -z "$API_ID" ]]; then
   API_ID=$(aws apigatewayv2 create-api \
     --name "$API_NAME" \
     --protocol-type HTTP \
+    --cors-configuration "AllowOrigins=*,AllowMethods=GET POST OPTIONS,AllowHeaders=content-type authorization" \
     --region "$REGION" \
     --query 'ApiId' --output text)
+else
+  aws apigatewayv2 update-api \
+    --api-id "$API_ID" \
+    --cors-configuration "AllowOrigins=*,AllowMethods=GET POST OPTIONS,AllowHeaders=content-type authorization" \
+    --region "$REGION" --output text --query 'ApiId' &>/dev/null
 fi
 echo "    API ID: $API_ID"
 
