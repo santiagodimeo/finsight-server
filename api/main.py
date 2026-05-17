@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 
@@ -125,6 +126,50 @@ def query(body: QueryRequest):
     sources = [c["content"][:200] for c in chunks]
 
     return {"answer": answer, "sources": sources}
+
+
+@app.get("/stats")
+def stats():
+    result = (
+        _get_supabase()
+        .table("documents")
+        .select("content")
+        .execute()
+    )
+    docs = result.data
+    if not docs:
+        return {"total_spending": 0.0, "total_income": 0.0, "largest_transaction": 0.0}
+
+    combined = ""
+    for doc in docs:
+        excerpt = (doc.get("content") or "")[:3000]
+        combined = (combined + "\n---\n" + excerpt)[:8000]
+
+    prompt = (
+        "You are a financial data extractor. From the documents below, compute:\n"
+        "- total_spending: sum of all outgoing payments, expenses, and debits (positive number)\n"
+        "- total_income: sum of all incoming payments, deposits, and credits (positive number)\n"
+        "- largest_transaction: the single largest individual transaction amount (positive number)\n\n"
+        "Respond with ONLY a JSON object in this exact format, no extra text:\n"
+        '{"total_spending": <number>, "total_income": <number>, "largest_transaction": <number>}\n\n'
+        f"Documents:\n{combined}"
+    )
+
+    response = _get_anthropic().messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=128,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    try:
+        data = json.loads(response.content[0].text.strip())
+        return {
+            "total_spending": float(data.get("total_spending", 0)),
+            "total_income": float(data.get("total_income", 0)),
+            "largest_transaction": float(data.get("largest_transaction", 0)),
+        }
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return {"total_spending": 0.0, "total_income": 0.0, "largest_transaction": 0.0}
 
 
 handler = Mangum(app)
