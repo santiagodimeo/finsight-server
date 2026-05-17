@@ -136,7 +136,7 @@ INTEGRATION_ID=$(aws apigatewayv2 create-integration \
 
 # ── 7. Routes ─────────────────────────────────────────────────────────────────
 echo "==> Creating routes…"
-for ROUTE in "POST /upload" "POST /query" "GET /documents"; do
+for ROUTE in "POST /upload" "POST /query" "GET /documents" "GET /stats"; do
   aws apigatewayv2 create-route \
     --api-id "$API_ID" \
     --route-key "$ROUTE" \
