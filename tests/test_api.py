@@ -59,3 +59,50 @@ def test_upload_csv_accepted(mocker):
     body = resp.json()
     assert body["document_id"] == FAKE_DOC_ID
     assert body["chunk_count"] == len(FAKE_CHUNKS)
+
+
+# ---------------------------------------------------------------------------
+# /stats
+# ---------------------------------------------------------------------------
+
+def _mock_supabase_docs(mocker, docs: list[dict]):
+    sb = MagicMock()
+    sb.table.return_value.select.return_value.execute.return_value.data = docs
+    mocker.patch("api.main._get_supabase", return_value=sb)
+    return sb
+
+
+def _mock_anthropic_stats(mocker, text: str):
+    msg = MagicMock()
+    msg.content = [MagicMock(text=text)]
+    client_mock = MagicMock()
+    client_mock.messages.create.return_value = msg
+    mocker.patch("api.main._get_anthropic", return_value=client_mock)
+
+
+def test_stats_no_documents(mocker):
+    _mock_supabase_docs(mocker, [])
+    resp = client.get("/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == {"total_spending": 0.0, "total_income": 0.0, "largest_transaction": 0.0}
+
+
+def test_stats_with_documents(mocker):
+    _mock_supabase_docs(mocker, [{"content": "Income: $3450. Spending: $248.21. Largest: $200."}])
+    _mock_anthropic_stats(mocker, '{"total_spending": 248.21, "total_income": 3450.0, "largest_transaction": 200.0}')
+    resp = client.get("/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_spending"] == pytest.approx(248.21)
+    assert body["total_income"] == pytest.approx(3450.0)
+    assert body["largest_transaction"] == pytest.approx(200.0)
+
+
+def test_stats_bad_llm_response(mocker):
+    _mock_supabase_docs(mocker, [{"content": "some financial text"}])
+    _mock_anthropic_stats(mocker, "I cannot determine the exact figures.")
+    resp = client.get("/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == {"total_spending": 0.0, "total_income": 0.0, "largest_transaction": 0.0}
