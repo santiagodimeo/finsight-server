@@ -8,3 +8,4 @@ dist/
 *.egg-info/
 docs/
 .DS_Store
+supabase/.temp/
